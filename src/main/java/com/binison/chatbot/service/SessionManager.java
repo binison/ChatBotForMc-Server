@@ -11,10 +11,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SessionManager {
     private final Map<UUID, SessionState> sessions = new ConcurrentHashMap<>();
-    private final Duration expireAfter;
+    private Duration expireAfter;
 
     public SessionManager(long expireMinutes) {
-        this.expireAfter = Duration.ofMinutes(expireMinutes);
+        this.expireAfter = Duration.ofMinutes(Math.max(1, expireMinutes));
+    }
+
+    public void updateExpireAfter(long expireMinutes) {
+        this.expireAfter = Duration.ofMinutes(Math.max(1, expireMinutes));
     }
 
     public List<ChatMessage> getContext(UUID playerId, boolean enabled, int maxRounds, String systemPrompt) {
@@ -30,9 +34,7 @@ public class SessionManager {
         if (state == null) {
             return result;
         }
-        int from = Math.max(0, state.messages.size() - maxRounds * 2);
-        result.addAll(state.messages.subList(from, state.messages.size()));
-        state.lastTouched = Instant.now();
+        result.addAll(state.snapshot(maxRounds));
         return result;
     }
 
@@ -50,17 +52,27 @@ public class SessionManager {
 
     private void purgeExpired() {
         Instant now = Instant.now();
-        sessions.entrySet().removeIf(entry -> Duration.between(entry.getValue().lastTouched, now).compareTo(expireAfter) > 0);
+        sessions.entrySet().removeIf(entry -> entry.getValue().isExpired(now, expireAfter));
     }
 
     private static final class SessionState {
         private final List<ChatMessage> messages = new ArrayList<>();
         private Instant lastTouched = Instant.now();
 
-        private void append(ChatMessage message) {
+        private synchronized List<ChatMessage> snapshot(int maxRounds) {
+            int from = Math.max(0, messages.size() - maxRounds * 2);
+            List<ChatMessage> snapshot = new ArrayList<>(messages.subList(from, messages.size()));
+            lastTouched = Instant.now();
+            return snapshot;
+        }
+
+        private synchronized void append(ChatMessage message) {
             messages.add(message);
             lastTouched = Instant.now();
         }
+
+        private synchronized boolean isExpired(Instant now, Duration expireAfter) {
+            return Duration.between(lastTouched, now).compareTo(expireAfter) > 0;
+        }
     }
 }
-

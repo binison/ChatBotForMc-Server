@@ -12,19 +12,22 @@ api:
   auth-prefix: "Bearer "
   model: "qwen-plus"
   timeout-ms: 20000
-  max-tokens: 300
+  # 设为 0 表示不主动限制上游输出 token
+  max-tokens: 0
   temperature: 0.7
 
 chat:
-  reply-prefix: "&b[AI]&r "
+  reply-prefix: "&d[米糯]&r "
   max-input-length: 300
-  max-output-length: 1200
+  # 设为 0 表示不在插件侧截断输出
+  max-output-length: 0
 
 context:
   enabled: true
   max-rounds: 6
   expire-minutes: 30
   system-prompt: "You are a helpful Minecraft server assistant. Keep replies concise and friendly."
+  max-prompt-length: 2000
 
 rate-limit:
   enabled: true
@@ -41,3 +44,7 @@ messages:
   request-failed: "&cAI is currently unavailable. Please try again later."
   reset-done: "&aConversation context cleared."
   reload-done: "&aChatbot configuration reloaded."
+  prompt-too-long: "&cThe prompt is too long."
+  prompt-view: "&7Current system prompt: &f%s"
+  prompt-set-done: "&aSystem prompt updated and saved."
+  prompt-reset-done: "&aSystem prompt reset and saved."

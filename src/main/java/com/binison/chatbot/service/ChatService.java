@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
 import org.bukkit.entity.Player;
 
 public class ChatService {
@@ -31,6 +32,7 @@ public class ChatService {
 
     public void reload(PluginConfig newConfig) {
         this.config = newConfig;
+        this.sessionManager.updateExpireAfter(newConfig.contextExpireMinutes());
     }
 
     public void setLlmClient(LlmClient llmClient) {
@@ -91,8 +93,7 @@ public class ChatService {
         } catch (Exception exception) {
             plugin.getLogger().warning("AI request failed for " + playerName + ": " + exception.getMessage());
             if (config.debug()) {
-                plugin.getLogger().warning("Detailed AI failure stack trace follows.");
-                exception.printStackTrace();
+                plugin.getLogger().log(Level.WARNING, "Detailed AI failure stack trace follows.", exception);
             }
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 Player player = plugin.getServer().getPlayer(playerId);
@@ -122,8 +123,27 @@ public class ChatService {
         return MessageFormatter.colorize(config.messages().reloadDone());
     }
 
+    public int maxPromptLength() {
+        return config.maxPromptLength();
+    }
+
+    public String promptTooLongMessage() {
+        return MessageFormatter.colorize(config.messages().promptTooLong());
+    }
+
+    public String promptViewMessage() {
+        return MessageFormatter.colorize(String.format(config.messages().promptView(), config.systemPrompt()));
+    }
+
+    public String promptSetDoneMessage() {
+        return MessageFormatter.colorize(config.messages().promptSetDone());
+    }
+
+    public String promptResetDoneMessage() {
+        return MessageFormatter.colorize(config.messages().promptResetDone());
+    }
+
     public void shutdown() {
         executorService.shutdownNow();
     }
 }
-

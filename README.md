@@ -8,19 +8,20 @@
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## ✨ 项目简介
-`ChatBotForMc` 是一个 Minecraft 服务端插件，目标是让玩家直接在游戏内通过 `/ai` 命令与大语言模型对话。
+`ChatBotForMc` 是一个 Paper 服务端插件，目标是让玩家直接在游戏内通过 `/ai` 命令与大语言模型对话。
 
-它适合以下场景：
-- 生存服 / RPG 服中的 AI 助手、答疑 NPC、服务器百科
+适合场景：
+- 生存服 / RPG 服中的 AI 助手、服务器百科、答疑入口
 - 管理员快速搭建一个可用的服内 LLM 对话入口
-- 想接入 OpenAI-compatible 或阿里百炼模型的 Paper 插件项目
+- 希望接入 OpenAI-compatible 或阿里百炼模型的 Paper 插件项目
 
 当前版本聚焦于：
-- 命令式 AI 对话
+- `/ai <message>` 命令式 AI 对话
 - 多轮上下文记忆
 - 限流与 busy 保护
-- 异步 HTTP 调用
-- 可切换不同 LLM 服务商
+- 异步 HTTP 调用，不阻塞主线程
+- 管理员统一配置系统提示词
+- OpenAI-compatible / 阿里百炼兼容模式接入
 
 ---
 
@@ -28,12 +29,13 @@
 - `/ai <message>` 直接发起 AI 对话
 - `/ai reload` 热重载配置并重建底层客户端
 - `/ai reset [player]` 清空会话上下文
+- `/ai prompt view|set|reset` 统一管理全局系统提示词
 - 玩家独立会话，不串线
 - 基础冷却控制，避免滥用
 - 请求异步执行，不阻塞主线程
 - 支持 OpenAI Chat Completions 兼容协议
 - 已适配阿里百炼（DashScope 兼容模式）
-- 调试模式下输出更清晰的 HTTP 错误与响应片段
+- debug 模式下输出更清晰的异常日志
 
 ---
 
@@ -49,7 +51,7 @@
 ## 🗂 项目结构
 ```text
 src/main/java/com/binison/chatbot/
-├─ ChatBotPlugin.java        # 插件入口
+├─ ChatBotPlugin.java        # 插件入口 / 配置重载 / 全局提示词写回
 ├─ command/
 │  └─ AiCommand.java         # /ai 命令
 ├─ config/
@@ -62,8 +64,8 @@ src/main/java/com/binison/chatbot/
 │  └─ LlmResponse.java
 ├─ service/
 │  ├─ ChatService.java       # 主业务逻辑
-│  ├─ RateLimitService.java
-│  └─ SessionManager.java
+│  ├─ RateLimitService.java  # cooldown / busy 控制
+│  └─ SessionManager.java    # 会话上下文
 └─ util/
    └─ MessageFormatter.java
 ```
@@ -75,12 +77,14 @@ src/main/java/com/binison/chatbot/
 - Paper 1.21.x
 - Maven 3.9+
 
+> 当前 `pom.xml` 使用 `maven.compiler.release=21`，并依赖 Paper API `1.21.1-R0.1-SNAPSHOT`。
+
 ---
 
 ## 🔌 支持的模型服务
-当前插件使用的是 **OpenAI Chat Completions 兼容协议**。
+当前插件使用 **OpenAI Chat Completions 兼容协议**。
 
-也就是说，目标服务最好兼容：
+目标服务最好兼容：
 - 请求地址：`/v1/chat/completions`
 - 请求字段：`model`、`messages`
 - 响应字段：`choices[0].message.content`
@@ -114,19 +118,20 @@ api:
   auth-prefix: "Bearer "
   model: "qwen-plus"
   timeout-ms: 20000
-  max-tokens: 300
+  max-tokens: 0
   temperature: 0.7
 
 chat:
-  reply-prefix: "&b[AI]&r "
+  reply-prefix: "&d[米糯]&r "
   max-input-length: 300
-  max-output-length: 1200
+  max-output-length: 0
 
 context:
   enabled: true
   max-rounds: 6
   expire-minutes: 30
   system-prompt: "You are a helpful Minecraft server assistant. Keep replies concise and friendly."
+  max-prompt-length: 2000
 
 rate-limit:
   enabled: true
@@ -165,10 +170,53 @@ api:
 - `api.auth-prefix`：认证前缀
 - `api.model`：模型名
 - `api.timeout-ms`：请求超时毫秒数
-- `api.max-tokens`：最大输出 token 数
+- `api.max-tokens`：最大输出 token 数，`0` 表示不主动传 `max_tokens`
 - `api.temperature`：采样温度
-- `context.*`：上下文相关配置
+- `chat.max-output-length`：最大输出字符数，`0` 表示插件侧不截断；当前默认整段发送，不再按两段/多段拆分
+- `context.system-prompt`：全局系统提示词
+- `context.max-prompt-length`：管理员设置提示词时的最大长度
 - `rate-limit.*`：限流相关配置
+
+---
+
+## 🎮 命令与权限
+### 命令
+- `/ai <message>`：向 AI 发送消息
+- `/ai reload`：重载配置
+- `/ai reset [player]`：清空会话上下文
+- `/ai prompt view`：查看当前全局系统提示词
+- `/ai prompt set <content>`：设置并保存全局系统提示词
+- `/ai prompt reset`：恢复默认系统提示词并保存
+
+### 权限
+- `chatbot.use`：允许使用聊天命令，默认 `true`
+- `chatbot.admin`：允许执行管理命令与系统提示词管理，默认 `op`
+- `chatbot.bypass.ratelimit`：绕过限流，默认 `op`
+
+---
+
+## 🧠 管理员统一提示词
+当前版本使用 **管理员统一配置的全局系统提示词**，而不是“每个玩家独立提示词”。
+
+### 查看当前提示词
+```text
+/ai prompt view
+```
+
+### 设置新的提示词
+```text
+/ai prompt set 你是本服务器的AI助手，请优先回答Minecraft玩法、服务器规则和本服相关内容。
+```
+
+### 重置为默认提示词
+```text
+/ai prompt reset
+```
+
+### 生效方式
+- `set` / `reset` 会直接写回 `plugins/ChatBotForMc/config.yml`
+- 写回后会立即 reload
+- 后续新的 AI 请求会使用新的系统提示词
 
 ---
 
@@ -181,7 +229,7 @@ mvn clean package
 成功后通常使用：
 
 ```text
-target/ChatBotForMc-1.0.0.jar
+target/ChatBotForMc-1.1.jar
 ```
 
 > 如果 `target` 下同时存在 `original-*.jar`，不要部署那个。
@@ -196,19 +244,6 @@ target/ChatBotForMc-1.0.0.jar
 
 ---
 
-## 🎮 命令与权限
-### 命令
-- `/ai <message>`：向 AI 发送消息
-- `/ai reload`：重载配置
-- `/ai reset [player]`：清空会话上下文
-
-### 权限
-- `chatbot.use`：允许使用聊天命令，默认 `true`
-- `chatbot.admin`：允许执行管理命令，默认 `op`
-- `chatbot.bypass.ratelimit`：绕过限流，默认 `op`
-
----
-
 ## ✅ 快速测试清单
 ### 基础测试
 ```text
@@ -217,13 +252,21 @@ target/ChatBotForMc-1.0.0.jar
 /ai reset
 ```
 
+### 提示词测试
+```text
+/ai prompt view
+/ai prompt set 你是本服AI助手，请优先回答Minecraft和本服规则问题。
+/ai prompt view
+/ai prompt reset
+```
+
 ### 上下文测试
 ```text
 /ai 我叫 Steve
 /ai 我刚才叫什么？
 ```
 
-### 冷却测试
+### 冷却 / busy 测试
 连续快速发送两次：
 
 ```text
@@ -291,13 +334,21 @@ mvn clean package
 
 再替换服务器里的插件文件。
 
+### 5. 管理员设置提示词后看起来没变
+请确认：
+- 执行的是 `/ai prompt set <内容>`
+- 执行者拥有 `chatbot.admin`
+- 看的是真实运行目录下的 `plugins/ChatBotForMc/config.yml`
+- 提示词长度没有超过 `context.max-prompt-length`
+
 ---
 
 ## 🔒 安全建议
-- 不要把真实 API Key 提交到 Git 仓库
+- **不要把真实 API Key 提交到 Git 仓库**
 - 如果 key 已经暴露，请立刻去服务商后台轮换
 - 对公开服务器建议启用权限管理和限流
 - 建议未来改成环境变量读取 API Key
+- 你当前本地 `config.yml` 如果已经写入真实 key，只应保留在服务器运行目录，不要直接推送到公共仓库
 
 ---
 
@@ -308,6 +359,7 @@ mvn clean package
 - [ ] 支持流式输出（stream）
 - [ ] 支持函数调用 / tools
 - [ ] 支持聊天监听模式（如 `@bot`）
+- [ ] 为命令与 HTTP 客户端补更多自动化测试
 
 ---
 
@@ -316,10 +368,7 @@ mvn clean package
 
 如果你准备继续扩展这个项目，建议优先从以下方向入手：
 1. 把 provider 逻辑拆成工厂模式
-2. 为 `ChatService` / `HttpLlmClient` 增加更多自动化测试
+2. 为 `ChatService` / `HttpLlmClient` / `AiCommand` 增加更多自动化测试
 3. 支持环境变量读取敏感配置
+4. 进一步收紧会话与生命周期语义
 
----
-
-## 📄 License
-本项目采用 MIT License。详见 `LICENSE` 文件。

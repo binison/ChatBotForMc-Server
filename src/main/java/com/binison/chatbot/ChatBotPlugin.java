@@ -11,6 +11,7 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class ChatBotPlugin extends JavaPlugin {
+    private static final String DEFAULT_SYSTEM_PROMPT = "You are a helpful Minecraft server assistant.";
     private PluginConfig pluginConfig;
     private SessionManager sessionManager;
     private RateLimitService rateLimitService;
@@ -64,5 +65,17 @@ public class ChatBotPlugin extends JavaPlugin {
 
     public ChatService chatService() {
         return chatService;
+    }
+
+    public void updateSystemPrompt(String prompt) {
+        getConfig().set("context.system-prompt", prompt == null ? DEFAULT_SYSTEM_PROMPT : prompt.trim());
+        saveConfig();
+        reloadPluginConfig();
+    }
+
+    public void resetSystemPrompt() {
+        getConfig().set("context.system-prompt", DEFAULT_SYSTEM_PROMPT);
+        saveConfig();
+        reloadPluginConfig();
     }
 }

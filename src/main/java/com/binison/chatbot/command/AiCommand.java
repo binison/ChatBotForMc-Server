@@ -3,6 +3,7 @@ package com.binison.chatbot.command;
 import com.binison.chatbot.ChatBotPlugin;
 import com.binison.chatbot.service.ChatService;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -28,6 +29,7 @@ public class AiCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("/ai <message>");
             sender.sendMessage("/ai reload");
             sender.sendMessage("/ai reset [player]");
+            sender.sendMessage("/ai prompt <view|set|reset> [content]");
             return true;
         }
 
@@ -38,7 +40,6 @@ public class AiCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             plugin.reloadPluginConfig();
-            chatService.reload(plugin.pluginConfig());
             sender.sendMessage(chatService.reloadDoneMessage());
             return true;
         }
@@ -67,8 +68,50 @@ public class AiCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (sub.equals("prompt")) {
+            if (!sender.hasPermission("chatbot.admin")) {
+                sender.sendMessage(chatService.noPermissionMessage());
+                return true;
+            }
+            if (args.length < 2) {
+                sender.sendMessage("/ai prompt <view|set|reset> [content]");
+                return true;
+            }
+
+            String action = args[1].toLowerCase();
+            if (action.equals("view")) {
+                sender.sendMessage(chatService.promptViewMessage());
+                return true;
+            }
+            if (action.equals("reset")) {
+                plugin.resetSystemPrompt();
+                sender.sendMessage(chatService.promptResetDoneMessage());
+                return true;
+            }
+            if (action.equals("set")) {
+                if (args.length < 3) {
+                    sender.sendMessage("/ai prompt set <content>");
+                    return true;
+                }
+                String prompt = String.join(" ", Arrays.copyOfRange(args, 2, args.length)).trim();
+                if (prompt.isEmpty()) {
+                    sender.sendMessage("/ai prompt set <content>");
+                    return true;
+                }
+                if (prompt.length() > chatService.maxPromptLength()) {
+                    sender.sendMessage(chatService.promptTooLongMessage());
+                    return true;
+                }
+                plugin.updateSystemPrompt(prompt);
+                sender.sendMessage(chatService.promptSetDoneMessage());
+                return true;
+            }
+            sender.sendMessage("/ai prompt <view|set|reset> [content]");
+            return true;
+        }
+
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Console cannot start chat sessions. Use /ai reset <player> or /ai reload.");
+            sender.sendMessage("Console cannot start chat sessions. Use /ai reset <player>, /ai reload, or /ai prompt.");
             return true;
         }
 
@@ -83,8 +126,13 @@ public class AiCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             if ("reload".startsWith(args[0].toLowerCase())) suggestions.add("reload");
             if ("reset".startsWith(args[0].toLowerCase())) suggestions.add("reset");
+            if ("prompt".startsWith(args[0].toLowerCase())) suggestions.add("prompt");
+        }
+        if (args.length == 2 && "prompt".equalsIgnoreCase(args[0])) {
+            if ("view".startsWith(args[1].toLowerCase())) suggestions.add("view");
+            if ("set".startsWith(args[1].toLowerCase())) suggestions.add("set");
+            if ("reset".startsWith(args[1].toLowerCase())) suggestions.add("reset");
         }
         return suggestions;
     }
 }
-

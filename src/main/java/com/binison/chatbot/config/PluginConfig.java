@@ -21,6 +21,7 @@ public record PluginConfig(
         int contextMaxRounds,
         long contextExpireMinutes,
         String systemPrompt,
+        int maxPromptLength,
         boolean rateLimitEnabled,
         long cooldownSeconds,
         Messages messages
@@ -42,15 +43,16 @@ public record PluginConfig(
                 config.getString("api.auth-prefix", defaultAuthPrefix),
                 config.getString("api.model", defaultModel),
                 Math.max(1000, config.getInt("api.timeout-ms", 20000)),
-                Math.max(1, config.getInt("api.max-tokens", 300)),
+                config.getInt("api.max-tokens", 300),
                 config.getDouble("api.temperature", 0.7d),
-                config.getString("chat.reply-prefix", "&b[AI]&r "),
+                config.getString("chat.reply-prefix", "&d[米糯]&r "),
                 Math.max(1, config.getInt("chat.max-input-length", 300)),
-                Math.max(1, config.getInt("chat.max-output-length", 1200)),
+                config.getInt("chat.max-output-length", 1200),
                 config.getBoolean("context.enabled", true),
                 Math.max(1, config.getInt("context.max-rounds", 6)),
                 Math.max(1, config.getLong("context.expire-minutes", 30L)),
                 config.getString("context.system-prompt", "You are a helpful Minecraft server assistant."),
+                Math.max(1, config.getInt("context.max-prompt-length", 2000)),
                 config.getBoolean("rate-limit.enabled", true),
                 Math.max(0, config.getLong("rate-limit.cooldown-seconds", 5L)),
                 new Messages(
@@ -63,7 +65,11 @@ public record PluginConfig(
                         config.getString("messages.busy", "&eYour previous AI request is still running."),
                         config.getString("messages.request-failed", "&cAI is currently unavailable. Please try again later."),
                         config.getString("messages.reset-done", "&aConversation context cleared."),
-                        config.getString("messages.reload-done", "&aChatbot configuration reloaded.")
+                        config.getString("messages.reload-done", "&aChatbot configuration reloaded."),
+                        config.getString("messages.prompt-too-long", "&cThe prompt is too long."),
+                        config.getString("messages.prompt-view", "&7Current system prompt: &f%s"),
+                        config.getString("messages.prompt-set-done", "&aSystem prompt updated and saved."),
+                        config.getString("messages.prompt-reset-done", "&aSystem prompt reset and saved.")
                 )
         );
     }
@@ -121,6 +127,10 @@ public record PluginConfig(
             String busy,
             String requestFailed,
             String resetDone,
-            String reloadDone
+            String reloadDone,
+            String promptTooLong,
+            String promptView,
+            String promptSetDone,
+            String promptResetDone
     ) {}
 }

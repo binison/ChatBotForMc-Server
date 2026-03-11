@@ -38,7 +38,9 @@ public class HttpLlmClient implements LlmClient {
         payload.put("model", config.model());
         payload.put("messages", messages);
         payload.put("temperature", config.temperature());
-        payload.put("max_tokens", config.maxTokens());
+        if (config.maxTokens() > 0) {
+            payload.put("max_tokens", config.maxTokens());
+        }
 
         String requestBody = objectMapper.writeValueAsString(payload);
         HttpRequest request = HttpRequest.newBuilder()
