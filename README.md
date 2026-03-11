@@ -104,7 +104,7 @@ plugins/ChatBotForMc/config.yml
 ### 推荐的阿里百炼配置
 ```yaml
 enabled: true
-debug: true
+debug: false
 
 api:
   provider: "bailian"
@@ -181,7 +181,7 @@ mvn clean package
 成功后通常使用：
 
 ```text
-target/ChatBotForMc-1.0-SNAPSHOT.jar
+target/ChatBotForMc-1.0.0.jar
 ```
 
 > 如果 `target` 下同时存在 `original-*.jar`，不要部署那个。
