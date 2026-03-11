@@ -1,0 +1,21 @@
+name: ChatBotForMc
+main: com.binison.chatbot.ChatBotPlugin
+version: 1.0.0
+api-version: '1.21'
+authors: [Binison]
+description: Chat with an LLM from inside a Paper server.
+commands:
+  ai:
+    description: Chat with the server AI assistant.
+    usage: /ai <message>|reload|reset [player]
+    permission: chatbot.use
+permissions:
+  chatbot.use:
+    description: Allows using the chatbot.
+    default: true
+  chatbot.admin:
+    description: Allows managing the chatbot plugin.
+    default: op
+  chatbot.bypass.ratelimit:
+    description: Bypass chatbot rate limiting.
+    default: op

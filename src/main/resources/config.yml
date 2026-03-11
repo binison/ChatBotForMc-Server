@@ -1,0 +1,43 @@
+enabled: true
+debug: true
+
+api:
+  # 可选值：openai-compatible / bailian / aliyun-bailian / dashscope / qwen
+  provider: "bailian"
+  # 阿里百炼 / DashScope 兼容模式 Chat Completions 地址
+  base-url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+  api-key: "api-key"
+  # 大多数兼容接口使用 Authorization + Bearer；如接别家可按需改 header/prefix
+  auth-header: "Authorization"
+  auth-prefix: "Bearer "
+  model: "qwen-plus"
+  timeout-ms: 20000
+  max-tokens: 300
+  temperature: 0.7
+
+chat:
+  reply-prefix: "&b[AI]&r "
+  max-input-length: 300
+  max-output-length: 1200
+
+context:
+  enabled: true
+  max-rounds: 6
+  expire-minutes: 30
+  system-prompt: "You are a helpful Minecraft server assistant. Keep replies concise and friendly."
+
+rate-limit:
+  enabled: true
+  cooldown-seconds: 5
+
+messages:
+  disabled: "&cChatbot is currently disabled."
+  missing-api-key: "&cChatbot API key is not configured."
+  no-permission: "&cYou do not have permission to use this command."
+  too-long: "&cYour message is too long."
+  cooldown: "&ePlease wait a moment before sending another request."
+  empty: "&ePlease enter a message."
+  busy: "&eYour previous AI request is still running."
+  request-failed: "&cAI is currently unavailable. Please try again later."
+  reset-done: "&aConversation context cleared."
+  reload-done: "&aChatbot configuration reloaded."
