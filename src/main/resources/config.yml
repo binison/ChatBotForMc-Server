@@ -6,7 +6,7 @@ api:
   provider: "bailian"
   # 阿里百炼 / DashScope 兼容模式 Chat Completions 地址
   base-url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-  api-key: "api-key"
+  api-key: ""
   # 大多数兼容接口使用 Authorization + Bearer；如接别家可按需改 header/prefix
   auth-header: "Authorization"
   auth-prefix: "Bearer "
