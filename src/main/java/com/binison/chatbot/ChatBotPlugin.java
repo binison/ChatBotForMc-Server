@@ -2,6 +2,8 @@ package com.binison.chatbot;
 
 import com.binison.chatbot.command.AiCommand;
 import com.binison.chatbot.config.PluginConfig;
+import com.binison.chatbot.listener.ChatMentionListener;
+import com.binison.chatbot.listener.EventTriggerListener;
 import com.binison.chatbot.llm.HttpLlmClient;
 import com.binison.chatbot.llm.LlmClient;
 import com.binison.chatbot.service.ChatService;
@@ -38,6 +40,8 @@ public class ChatBotPlugin extends JavaPlugin {
         AiCommand executor = new AiCommand(this, chatService);
         aiCommand.setExecutor(executor);
         aiCommand.setTabCompleter(executor);
+        getServer().getPluginManager().registerEvents(new EventTriggerListener(this, chatService), this);
+        getServer().getPluginManager().registerEvents(new ChatMentionListener(this, chatService), this);
 
         getLogger().info("ChatBotForMc enabled.");
     }

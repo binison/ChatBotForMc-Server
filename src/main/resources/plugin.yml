@@ -1,17 +1,17 @@
 name: ChatBotForMc
 main: com.binison.chatbot.ChatBotPlugin
-version: 1.1
+version: 1.2
 api-version: '1.21'
 authors: [Binison]
-description: Chat with an LLM from inside a Paper server.
+description: Chat with an LLM from inside a Paper server using @ai in chat, while /ai is reserved for management.
 commands:
   ai:
-    description: Chat with the server AI assistant.
-    usage: /ai <message>|reload|reset [player]|prompt <view|set|reset> [content]
+    description: Manage the server AI assistant.
+    usage: /ai reload|reset [player]|prompt <view|set|reset> [content]
     permission: chatbot.use
 permissions:
   chatbot.use:
-    description: Allows using the chatbot.
+    description: Allows using the chatbot via @ai mentions.
     default: true
   chatbot.admin:
     description: Allows managing the chatbot plugin and system prompt.

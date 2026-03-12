@@ -1,5 +1,6 @@
 package com.binison.chatbot.config;
 
+import java.util.List;
 import org.bukkit.configuration.file.FileConfiguration;
 
 public record PluginConfig(
@@ -14,9 +15,13 @@ public record PluginConfig(
         int timeoutMs,
         int maxTokens,
         double temperature,
+        boolean streamEnabled,
         String replyPrefix,
         int maxInputLength,
         int maxOutputLength,
+        int streamFlushChars,
+        long streamFlushIntervalMs,
+        ChatMention chatMention,
         boolean contextEnabled,
         int contextMaxRounds,
         long contextExpireMinutes,
@@ -24,6 +29,7 @@ public record PluginConfig(
         int maxPromptLength,
         boolean rateLimitEnabled,
         long cooldownSeconds,
+        EventTriggers eventTriggers,
         Messages messages
 ) {
     public static PluginConfig from(FileConfiguration config) {
@@ -45,9 +51,17 @@ public record PluginConfig(
                 Math.max(1000, config.getInt("api.timeout-ms", 20000)),
                 config.getInt("api.max-tokens", 300),
                 config.getDouble("api.temperature", 0.7d),
+                config.getBoolean("api.stream-enabled", true),
                 config.getString("chat.reply-prefix", "&d[米糯]&r "),
                 Math.max(1, config.getInt("chat.max-input-length", 300)),
                 config.getInt("chat.max-output-length", 1200),
+                Math.max(1, config.getInt("chat.stream-flush-chars", 24)),
+                Math.max(50L, config.getLong("chat.stream-flush-interval-ms", 400L)),
+                new ChatMention(
+                        config.getBoolean("chat-mention.enabled", true),
+                        config.getStringList("chat-mention.prefixes").isEmpty() ? List.of("@ai") : config.getStringList("chat-mention.prefixes"),
+                        config.getBoolean("chat-mention.cancel-original-message", true)
+                ),
                 config.getBoolean("context.enabled", true),
                 Math.max(1, config.getInt("context.max-rounds", 6)),
                 Math.max(1, config.getLong("context.expire-minutes", 30L)),
@@ -55,6 +69,29 @@ public record PluginConfig(
                 Math.max(1, config.getInt("context.max-prompt-length", 2000)),
                 config.getBoolean("rate-limit.enabled", true),
                 Math.max(0, config.getLong("rate-limit.cooldown-seconds", 5L)),
+                new EventTriggers(
+                        config.getBoolean("event-triggers.enabled", false),
+                        config.getBoolean("event-triggers.broadcast", true),
+                        new EventTrigger(
+                                config.getBoolean("event-triggers.join.enabled", false),
+                                config.getBoolean("event-triggers.join.first-join-only", false),
+                                Math.max(0L, config.getLong("event-triggers.join.cooldown-seconds", 300L)),
+                                config.getString("event-triggers.join.prompt", "A player named %player% has joined the server. Give a short in-character welcome and one helpful server tip.")
+                        ),
+                        new EventTrigger(
+                                config.getBoolean("event-triggers.death.enabled", false),
+                                false,
+                                Math.max(0L, config.getLong("event-triggers.death.cooldown-seconds", 180L)),
+                                config.getString("event-triggers.death.prompt", "Player %player% died in Minecraft. Offer a short comforting reaction and one practical suggestion based on this death message: %death_message%")
+                        ),
+                        new AdvancementTrigger(
+                                config.getBoolean("event-triggers.advancement.enabled", false),
+                                false,
+                                Math.max(0L, config.getLong("event-triggers.advancement.cooldown-seconds", 180L)),
+                                config.getString("event-triggers.advancement.prompt", "Player %player% has just completed the advancement '%advancement%'. React briefly and suggest a natural next goal."),
+                                config.getStringList("event-triggers.advancement.ignore-prefixes")
+                        )
+                ),
                 new Messages(
                         config.getString("messages.disabled", "&cChatbot is currently disabled."),
                         config.getString("messages.missing-api-key", "&cChatbot API key is not configured."),
@@ -117,6 +154,42 @@ public record PluginConfig(
         };
     }
 
+    public record EventTriggers(
+            boolean enabled,
+            boolean broadcast,
+            EventTrigger join,
+            EventTrigger death,
+            AdvancementTrigger advancement
+    ) {}
+
+    public record EventTrigger(
+            boolean enabled,
+            boolean firstJoinOnly,
+            long cooldownSeconds,
+            String prompt
+    ) {}
+
+    public record AdvancementTrigger(
+            boolean enabled,
+            boolean firstJoinOnly,
+            long cooldownSeconds,
+            String prompt,
+            List<String> ignorePrefixes
+    ) {
+        public boolean shouldIgnore(String key) {
+            if (key == null || key.isBlank()) {
+                return false;
+            }
+            if (ignorePrefixes == null || ignorePrefixes.isEmpty()) {
+                return false;
+            }
+            return ignorePrefixes.stream()
+                    .filter(prefix -> prefix != null && !prefix.isBlank())
+                    .map(String::trim)
+                    .anyMatch(key::startsWith);
+        }
+    }
+
     public record Messages(
             String disabled,
             String missingApiKey,
@@ -132,5 +205,11 @@ public record PluginConfig(
             String promptView,
             String promptSetDone,
             String promptResetDone
+    ) {}
+
+    public record ChatMention(
+            boolean enabled,
+            List<String> prefixes,
+            boolean cancelOriginalMessage
     ) {}
 }

@@ -15,6 +15,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class AiCommand implements CommandExecutor, TabCompleter {
+    private static final String CHAT_HINT = "Use @ai <message> in chat to talk with the assistant.";
+
     private final ChatBotPlugin plugin;
     private final ChatService chatService;
 
@@ -26,7 +28,7 @@ public class AiCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("/ai <message>");
+            sender.sendMessage(CHAT_HINT);
             sender.sendMessage("/ai reload");
             sender.sendMessage("/ai reset [player]");
             sender.sendMessage("/ai prompt <view|set|reset> [content]");
@@ -110,13 +112,7 @@ public class AiCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage("Console cannot start chat sessions. Use /ai reset <player>, /ai reload, or /ai prompt.");
-            return true;
-        }
-
-        String message = String.join(" ", args);
-        chatService.handleChat(player, message);
+        sender.sendMessage(CHAT_HINT);
         return true;
     }
 

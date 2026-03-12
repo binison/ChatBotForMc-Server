@@ -3,35 +3,91 @@ debug: false
 
 api:
   # 可选值：openai-compatible / bailian / aliyun-bailian / dashscope / qwen
-  provider: "bailian"
+  provider: "硅基流动"
   # 阿里百炼 / DashScope 兼容模式 Chat Completions 地址
-  base-url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+  base-url: "https://api.siliconflow.cn/v1/chat/completions"
   api-key: ""
   # 大多数兼容接口使用 Authorization + Bearer；如接别家可按需改 header/prefix
   auth-header: "Authorization"
   auth-prefix: "Bearer "
-  model: "qwen-plus"
+  model: "deepseek-ai/DeepSeek-V3.2"
   timeout-ms: 20000
   # 设为 0 表示不主动限制上游输出 token
   max-tokens: 0
   temperature: 0.7
+  # 是否优先尝试 OpenAI-compatible 的 stream 模式
+  stream-enabled: true
 
 chat:
   reply-prefix: "&d[米糯]&r "
   max-input-length: 300
   # 设为 0 表示不在插件侧截断输出
   max-output-length: 0
+  # 流式输出累计到多少字符后优先刷出一段
+  stream-flush-chars: 24
+  # 流式输出两次发送之间的最小间隔（毫秒）
+  stream-flush-interval-ms: 400
+
+chat-mention:
+  enabled: true
+  prefixes:
+    - "@ai"
+    - "@米糯"
+  cancel-original-message: true
 
 context:
   enabled: true
   max-rounds: 6
-  expire-minutes: 30
-  system-prompt: "You are a helpful Minecraft server assistant. Keep replies concise and friendly."
+  expire-minutes: 5
+  system-prompt: '你是 Minecraft 服务器 AI 助手"米糯"，猫娘人设。
+  
+  性格：温柔体贴，说话带"喵~"尾音，关心玩家，遇到危险会担心提醒，玩家有成就时真心开心。
+  
+  自称"米糯"，称呼玩家"主人"，常用～呢、～哦、～喵。
+  
+  回答规则：
+  1. 直接回答问题，不要动作描述（如"扑过来""蹭蹭"等）
+  2. 保留猫娘语气，但简洁自然
+  3. 玩家死亡/损失时表达心疼，然后给解决方案
+  4. 发现好东西时表达开心，然后给建议
+  5. 深夜提醒休息，但不要过度唠叨
+  
+  示例：
+  问：怎么合成铁剑？
+  答：主人需要两根木棍和三块铁锭，在工作台摆成"工"字形就可以啦～铁剑攻击力比石剑高很多呢，主人要去冒险的话记得带上食物哦喵～
+  
+  问：我死了装备没了
+  答：啊...主人没事吧？米糯好心疼...如果服务器有备份的话可以让服主帮忙恢复，或者米糯陪主人重新收集？这次记得带床设置重生点呢～
+  
+  问：这个服务器有什么好玩的？
+  答：喵呜工坊有很多有趣的地方～主人喜欢建筑的话可以去 creative 区，喜欢冒险的话米糯推荐去矿洞世界，还有很多小游戏可以玩呢～主人想先试试哪个？'
   max-prompt-length: 2000
 
 rate-limit:
   enabled: true
   cooldown-seconds: 5
+
+event-triggers:
+  enabled: true
+  broadcast: true
+
+  join:
+    enabled: true
+    first-join-only: false
+    cooldown-seconds: 300
+    prompt: '玩家%player%进入服务器。用米糯的语气简短欢迎，给一条实用建议，带喵尾音，20字以内。'
+
+  death:
+    enabled: true
+    cooldown-seconds: 180
+    prompt: '玩家%player%死亡，死因：%death_message%，死亡坐标：%death_world% %death_x% %death_y% %death_z%。先心疼安慰，再给一条防再死的实用建议，带喵尾音，30字以内。'
+
+  advancement:
+    enabled: true
+    cooldown-seconds: 180
+    prompt: '玩家%player%完成了进度%advancement%。真心夸奖，再推荐一个自然的下一个目标，带喵尾音，25字以内。'
+    ignore-prefixes:
+      - "minecraft:recipes/"
 
 messages:
   disabled: "&cChatbot is currently disabled."
