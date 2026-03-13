@@ -67,6 +67,20 @@ rate-limit:
   enabled: true
   cooldown-seconds: 5
 
+command-execution:
+  enabled: true
+  require-confirm: true
+  max-commands-per-response: 1
+  max-command-length: 200
+  allowed-commands:
+    - "time set day"
+    - "weather clear"
+    - "weather rain"
+    - "weather thunder"
+    - "tp *"
+    - "gamerule keepInventory true"
+    - "kill *"
+
 event-triggers:
   enabled: true
   broadcast: true

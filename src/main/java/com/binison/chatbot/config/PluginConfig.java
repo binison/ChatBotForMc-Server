@@ -30,6 +30,7 @@ public record PluginConfig(
         boolean rateLimitEnabled,
         long cooldownSeconds,
         EventTriggers eventTriggers,
+        CommandExecution commandExecution,
         Messages messages
 ) {
     public static PluginConfig from(FileConfiguration config) {
@@ -92,6 +93,7 @@ public record PluginConfig(
                                 config.getStringList("event-triggers.advancement.ignore-prefixes")
                         )
                 ),
+                CommandExecution.from(config.getConfigurationSection("command-execution")),
                 new Messages(
                         config.getString("messages.disabled", "&cChatbot is currently disabled."),
                         config.getString("messages.missing-api-key", "&cChatbot API key is not configured."),
@@ -160,14 +162,39 @@ public record PluginConfig(
             EventTrigger join,
             EventTrigger death,
             AdvancementTrigger advancement
-    ) {}
+    ) {
+        public static EventTriggers from(org.bukkit.configuration.ConfigurationSection section) {
+            if (section == null) {
+                return new EventTriggers(false, false, null, null, null);
+            }
+            return new EventTriggers(
+                    section.getBoolean("enabled", false),
+                    section.getBoolean("broadcast", true),
+                    EventTrigger.from(section.getConfigurationSection("join")),
+                    EventTrigger.from(section.getConfigurationSection("death")),
+                    AdvancementTrigger.from(section.getConfigurationSection("advancement"))
+            );
+        }
+    }
 
     public record EventTrigger(
             boolean enabled,
             boolean firstJoinOnly,
             long cooldownSeconds,
             String prompt
-    ) {}
+    ) {
+        public static EventTrigger from(org.bukkit.configuration.ConfigurationSection section) {
+            if (section == null) {
+                return new EventTrigger(false, false, 0L, "");
+            }
+            return new EventTrigger(
+                    section.getBoolean("enabled", false),
+                    section.getBoolean("first-join-only", false),
+                    Math.max(0L, section.getLong("cooldown-seconds", 0L)),
+                    section.getString("prompt", "")
+            );
+        }
+    }
 
     public record AdvancementTrigger(
             boolean enabled,
@@ -176,6 +203,19 @@ public record PluginConfig(
             String prompt,
             List<String> ignorePrefixes
     ) {
+        public static AdvancementTrigger from(org.bukkit.configuration.ConfigurationSection section) {
+            if (section == null) {
+                return new AdvancementTrigger(false, false, 0L, "", List.of());
+            }
+            return new AdvancementTrigger(
+                    section.getBoolean("enabled", false),
+                    section.getBoolean("first-join-only", false),
+                    Math.max(0L, section.getLong("cooldown-seconds", 0L)),
+                    section.getString("prompt", ""),
+                    section.getStringList("ignore-prefixes")
+            );
+        }
+
         public boolean shouldIgnore(String key) {
             if (key == null || key.isBlank()) {
                 return false;
@@ -205,11 +245,69 @@ public record PluginConfig(
             String promptView,
             String promptSetDone,
             String promptResetDone
-    ) {}
+    ) {
+        public static Messages from(org.bukkit.configuration.ConfigurationSection section) {
+            if (section == null) {
+                return new Messages(
+                        "&cChatbot is currently disabled.",
+                        "&cChatbot API key is not configured.",
+                        "&cYou do not have permission to use this command.",
+                        "&cYour message is too long.",
+                        "&ePlease wait a moment before sending another request.",
+                        "&ePlease enter a message.",
+                        "&eYour previous AI request is still running.",
+                        "&cAI is currently unavailable. Please try again later.",
+                        "&aConversation context cleared.",
+                        "&aChatbot configuration reloaded.",
+                        "&cThe prompt is too long.",
+                        "&7Current system prompt: &f%s",
+                        "&aSystem prompt updated and saved.",
+                        "&aSystem prompt reset and saved."
+                );
+            }
+            return new Messages(
+                    section.getString("disabled", "&cChatbot is currently disabled."),
+                    section.getString("missing-api-key", "&cChatbot API key is not configured."),
+                    section.getString("no-permission", "&cYou do not have permission to use this command."),
+                    section.getString("too-long", "&cYour message is too long."),
+                    section.getString("cooldown", "&ePlease wait a moment before sending another request."),
+                    section.getString("empty", "&ePlease enter a message."),
+                    section.getString("busy", "&eYour previous AI request is still running."),
+                    section.getString("request-failed", "&cAI is currently unavailable. Please try again later."),
+                    section.getString("reset-done", "&aConversation context cleared."),
+                    section.getString("reload-done", "&aChatbot configuration reloaded."),
+                    section.getString("prompt-too-long", "&cThe prompt is too long."),
+                    section.getString("prompt-view", "&7Current system prompt: &f%s"),
+                    section.getString("prompt-set-done", "&aSystem prompt updated and saved."),
+                    section.getString("prompt-reset-done", "&aSystem prompt reset and saved.")
+            );
+        }
+    }
 
     public record ChatMention(
             boolean enabled,
             List<String> prefixes,
             boolean cancelOriginalMessage
     ) {}
+
+    public record CommandExecution(
+            boolean enabled,
+            boolean requireConfirm,
+            int maxCommandsPerResponse,
+            int maxCommandLength,
+            List<String> allowedCommands
+    ) {
+        public static CommandExecution from(org.bukkit.configuration.ConfigurationSection section) {
+            if (section == null) {
+                return new CommandExecution(false, true, 1, 200, List.of());
+            }
+            return new CommandExecution(
+                    section.getBoolean("enabled", false),
+                    section.getBoolean("require-confirm", true),
+                    Math.max(1, section.getInt("max-commands-per-response", 1)),
+                    Math.max(1, section.getInt("max-command-length", 200)),
+                    section.getStringList("allowed-commands")
+            );
+        }
+    }
 }

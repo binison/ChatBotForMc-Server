@@ -70,6 +70,22 @@ public class AiCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (sub.equals("confirm")) {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage("Console cannot confirm AI commands.");
+                return true;
+            }
+            if (args.length < 2) {
+                sender.sendMessage("/ai confirm <token>");
+                return true;
+            }
+            boolean confirmed = chatService.confirmCommand(player, args[1]);
+            if (!confirmed) {
+                sender.sendMessage("Confirmation expired or invalid.");
+            }
+            return true;
+        }
+
         if (sub.equals("prompt")) {
             if (!sender.hasPermission("chatbot.admin")) {
                 sender.sendMessage(chatService.noPermissionMessage());
@@ -123,6 +139,7 @@ public class AiCommand implements CommandExecutor, TabCompleter {
             if ("reload".startsWith(args[0].toLowerCase())) suggestions.add("reload");
             if ("reset".startsWith(args[0].toLowerCase())) suggestions.add("reset");
             if ("prompt".startsWith(args[0].toLowerCase())) suggestions.add("prompt");
+            if ("confirm".startsWith(args[0].toLowerCase())) suggestions.add("confirm");
         }
         if (args.length == 2 && "prompt".equalsIgnoreCase(args[0])) {
             if ("view".startsWith(args[1].toLowerCase())) suggestions.add("view");
